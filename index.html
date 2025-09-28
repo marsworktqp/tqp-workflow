@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TQP Automated WorkFlow</title>
+  <link rel="stylesheet" href="style.css"/>
+  <!-- SheetJS opcjonalnie -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+  <!-- Minimalne, samowystarczalne style TYLKO dla modala konfiguracji (namespacowane pc-*) -->
+  <style>
+    /* Overlay */
+    .pc-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      display: none;           /* pokaż przez .is-open */
+      align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .pc-modal-overlay.is-open { display: flex; }
+
+    /* Okno */
+    .pc-modal {
+      width: min(900px, 95vw);
+      background: #fff; color: #111;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      overflow: hidden;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    /* Nagłówek modala */
+    .pc-modal__header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 12px 16px; border-bottom: 1px solid #e5e7eb;
+      background: #f8fafc;
+    }
+    .pc-modal__title { font-size: 16px; font-weight: 600; }
+
+    .pc-actions { display:flex; gap:8px; align-items:center; }
+    .pc-icon-btn {
+      border: 1px solid #e5e7eb; background: #fff; color:#111;
+      border-radius: 8px; padding: 8px 12px; cursor: pointer;
+      font-size: 16px; line-height: 1;
+    }
+    .pc-icon-btn:hover { background:#f3f4f6; }
+
+    /* Wyraźny „plusik” */
+    .pc-icon-btn--primary {
+      background:#2563eb; color:#fff; border:1px solid #1e40af;
+      font-weight: 600; font-size: 15px;
+    }
+    .pc-icon-btn--primary:hover { background:#1d4ed8; }
+
+    /* Czerwona akcja (usuń) */
+    .pc-icon-btn--danger {
+      background:#ef4444; color:#fff; border:1px solid #b91c1c;
+      padding: 6px 10px; font-size:14px;
+    }
+    .pc-icon-btn--danger:hover { background:#dc2626; }
+
+    /* Body */
+    .pc-modal__body { padding: 12px 16px 16px 16px; }
+
+    /* Tabela */
+    .pc-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      table-layout: fixed;
+      border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;
+    }
+    .pc-table thead th {
+      background:#f3f4f6; text-align: left; font-weight: 600; font-size: 13px;
+      color:#374151; padding: 10px 12px; border-bottom: 1px solid #e5e7eb;
+    }
+    .pc-table tbody td {
+      padding: 8px 10px; border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    .pc-table tbody tr:last-child td { border-bottom: none; }
+
+    /* Kolumny */
+    .pc-col--proces  { width: 28%; }
+    .pc-col--emails  { width: auto; }
+    .pc-col--actions { width: 110px; text-align: right; }
+
+    /* Pola */
+    .pc-input {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 8px;
+      padding: 8px 10px; font-size: 14px; outline: none;
+    }
+    .pc-input:focus {
+      border-color:#2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    }
+
+    /* Stopka / podpowiedź */
+    .pc-hint {
+      margin-top: 10px; font-size: 12px; color:#6b7280;
+    }
+
+    /* Blokada scrolla tła */
+    body.pc-no-scroll { overflow: hidden; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>TQP Automated WorkFlow</h1>
+  </header>
+
+  <!-- Pasek opcji nad zakładkami -->
+  <div class="options-bar">
+    <button id="btn-open-filter-menu" class="option-button">Menu filtrów</button>
+    <button id="btn-open-column-menu" class="option-button">Wybór kolumn</button>
+    <button id="btn-open-process-config" class="option-button">Konfiguracje Procesów</button>
+    <div class="spacer"></div>
+    <button id="btn-reset-prefs" class="option-button secondary">Reset ustawień</button>
+  </div>
+
+  <!-- Zakładki -->
+  <div class="tabs">
+    <button class="tab-button active" data-tab="import">Import</button>
+    <button class="tab-button" data-tab="export">Export</button>
+  </div>
+
+  <!-- FILTRY: EXPORT -->
+  <section id="filters-export" class="filter-section" data-table-id="table-export">
+    <div class="filters-grid">
+      <div class="filter">
+        <label>Zakres dat (Data Wiadomości):</label>
+        <div class="range">
+          <input type="date" class="filter-input" data-col="Data Wiadomosci" data-op="from"/>
+          <span>—</span>
+          <input type="date" class="filter-input" data-col="Data Wiadomosci" data-op="to"/>
+        </div>
+      </div>
+
+      <div class="filter">
+        <label>Delivery:</label>
+        <input type="text" class="filter-input" data-col="Delivery" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>Numer Zamknięcia MRN:</label>
+        <input type="text" class="filter-input" data-col="Numer Zamkniecia MRN" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>Zakres dat (Data Zamknięcia MRN):</label>
+        <div class="range">
+          <input type="date" class="filter-input" data-col="Data Zamkniecia MRN" data-op="from"/>
+          <span>—</span>
+          <input type="date" class="filter-input" data-col="Data Zamkniecia MRN" data-op="to"/>
+        </div>
+      </div>
+
+      <div class="filter">
+        <label>Proces:</label> <!-- WYŚWIETLANE jako 'Proces', ale data-col zostaje 'Dokumenty' -->
+        <input type="text" class="filter-input" data-col="Proces" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>Status:</label>
+        <input type="text" class="filter-input" data-col="Status" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>Korespondencja:</label>
+        <input type="text" class="filter-input" data-col="Korespondencja" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>Dane Techniczne:</label>
+        <input type="text" class="filter-input" data-col="Dane Techniczne" placeholder="…"/>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILTRY: IMPORT -->
+  <section id="filters-import" class="filter-section active" data-table-id="table-import">
+    <div class="filters-grid">
+      <div class="filter">
+        <label>Zakres dat (Data Awizacji):</label>
+        <div class="range">
+          <input type="date" class="filter-input" data-col="Data Awizacji" data-op="from"/>
+          <span>—</span>
+          <input type="date" class="filter-input" data-col="Data Awizacji" data-op="to"/>
+        </div>
+      </div>
+
+      <div class="filter">
+        <label>Zakres dat (Data Zamknięcia Tranzytu):</label>
+        <div class="range">
+          <input type="date" class="filter-input" data-col="Data Zamknięcia Tranzytu" data-op="from"/>
+          <span>—</span>
+          <input type="date" class="filter-input" data-col="Data Zamknięcia Tranzytu" data-op="to"/>
+        </div>
+      </div>
+
+      <div class="filter">
+        <label>Status:</label>
+        <input type="text" class="filter-input" data-col="Status" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>AWB:</label>
+        <input type="text" class="filter-input" data-col="AWB" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>Przewoźnik:</label>
+        <input type="text" class="filter-input" data-col="Przewoźnik" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>DSK MRN:</label>
+        <input type="text" class="filter-input" data-col="DSK MRN" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>Zakres dat (Data DSK):</label>
+        <div class="range">
+          <input type="date" class="filter-input" data-col="Data DSK" data-op="from"/>
+          <span>—</span>
+          <input type="date" class="filter-input" data-col="Data DSK" data-op="to"/>
+        </div>
+      </div>
+
+      <div class="filter">
+        <label>Zakres dat (Data Zamknięcia DSK):</label>
+        <div class="range">
+          <input type="date" class="filter-input" data-col="Data Zamknięcia DSK" data-op="from"/>
+          <span>—</span>
+          <input type="date" class="filter-input" data-col="Data Zamknięcia DSK" data-op="to"/>
+        </div>
+      </div>
+
+      <div class="filter">
+        <label>Odprawa MRN:</label>
+        <input type="text" class="filter-input" data-col="Odprawa MRN" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>Zakres dat (Data Odprawy MRN):</label>
+        <div class="range">
+          <input type="date" class="filter-input" data-col="Data Odprawy MRN" data-op="from"/>
+          <span>—</span>
+          <input type="date" class="filter-input" data-col="Data Odprawy MRN" data-op="to"/>
+        </div>
+      </div>
+
+      <div class="filter">
+        <label>Dokumenty:</label>
+        <input type="text" class="filter-input" data-col="Dokumenty" placeholder="…"/>
+      </div>
+
+      <div class="filter">
+        <label>Korespondencja:</label>
+        <input type="text" class="filter-input" data-col="Korespondencja" placeholder="…"/>
+      </div>
+    </div>
+  </section>
+
+  <!-- MENU: wybór filtrów (checkboxy) -->
+  <div id="filter-menu" class="popup">
+    <div class="popup-header">
+      <strong>Widoczność filtrów</strong>
+      <button class="close">&times;</button>
+    </div>
+    <div class="popup-body" id="filter-menu-body"></div>
+    <div class="popup-footer">
+      <button id="filters-select-all" class="option-button">Zaznacz wszystkie</button>
+      <button id="filters-deselect-all" class="option-button secondary">Odznacz wszystkie</button>
+    </div>
+  </div>
+
+  <!-- MENU: wybór kolumn -->
+  <div id="column-menu" class="popup">
+    <div class="popup-header">
+      <strong>Widoczność kolumn</strong>
+      <button class="close">&times;</button>
+    </div>
+    <div class="popup-body" id="column-menu-body"></div>
+    <div class="popup-footer">
+      <button id="cols-select-all" class="option-button">Zaznacz wszystkie</button>
+      <button id="cols-deselect-all" class="option-button secondary">Odznacz wszystkie</button>
+    </div>
+  </div>
+
+  <!-- MENU kontekstowe wiersza -->
+  <div id="row-context" class="row-context">
+    <button data-action="copy">Kopiuj wiersz</button>
+    <button data-action="delete">Usuń</button>
+    <button data-action="undo">Cofnij</button>
+  </div>
+
+  <!-- TABELE -->
+  <section id="tab-export" class="tab-content" data-table="table-export">
+    <div class="table-wrap">
+      <table id="table-export" class="grid">
+        <thead>
+          <tr>
+            <th draggable="true" data-column="Data Wiadomosci">Data Wiadomości</th>
+            <th draggable="true" data-column="Delivery">Delivery</th>
+            <th draggable="true" data-column="Numer Zamkniecia MRN">Numer Zamknięcia MRN</th>
+            <th draggable="true" data-column="Data Zamkniecia MRN">Data Zamknięcia MRN</th>
+            <!-- WYŚWIETLANA nazwa = 'Proces', ale data-column zostaje 'Dokumenty' -->
+            <th draggable="true" data-column="Proces">Proces</th>
+            <th draggable="true" data-column="Status">Status</th>
+            <th draggable="true" data-column="Korespondencja">Korespondencja</th>
+            <th draggable="true" data-column="Dane Techniczne">Dane Techniczne</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-import" class="tab-content active" data-table="table-import">
+    <div class="table-wrap">
+      <table id="table-import" class="grid">
+        <thead>
+          <tr>
+            <th draggable="true" data-column="Data Awizacji">Data Awizacji</th>
+            <th draggable="true" data-column="Data Zamknięcia Tranzytu">Data Zamknięcia Tranzytu</th>
+            <th draggable="true" data-column="Status">Status</th>
+            <th draggable="true" data-column="AWB">AWB</th>
+            <th draggable="true" data-column="Przewoźnik">Przewoźnik</th>
+            <th draggable="true" data-column="Dokumenty">Dokumenty</th>
+            <th draggable="true" data-column="Korespondencja">Korespondencja</th>
+            <th draggable="true" data-column="DSK MRN">DSK MRN</th>
+            <th draggable="true" data-column="Data DSK">Data DSK</th>
+            <th draggable="true" data-column="Data Zamknięcia DSK">Data Zamknięcia DSK</th>
+            <th draggable="true" data-column="Odprawa MRN">Odprawa MRN</th>
+            <th draggable="true" data-column="Data Odprawy MRN">Data Odprawy MRN</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Logika UI -->
+  <script src="filters.js"></script>
+  <script src="columns.js"></script>
+  <script src="renderer.js"></script>
+
+  <!-- Mini skrypt tabs -->
+  <script>
+    (function(){
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+      const filterSections = {
+        import: document.getElementById('filters-import'),
+        export: document.getElementById('filters-export')
+      };
+
+      function setActive(tab){
+        tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+        tabContents.forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
+        Object.entries(filterSections).forEach(([k,el])=>{
+          el.classList.toggle('active', k === tab);
+        });
+      }
+
+      tabButtons.forEach(btn=>{
+        btn.addEventListener('click', ()=> setActive(btn.dataset.tab));
+      });
+
+      setActive('import');
+    })();
+  </script>
+
+  <!-- Modal KONFIGURACJE PROCESÓW (overlay) -->
+  <div id="pc-overlay" class="pc-modal-overlay" aria-hidden="true" role="dialog" aria-labelledby="pc-title">
+    <div class="pc-modal">
+      <div class="pc-modal__header">
+        <div id="pc-title" class="pc-modal__title">Konfiguracje Procesów</div>
+        <div class="pc-actions">
+          <button id="pc-add" class="pc-icon-btn pc-icon-btn--primary" title="Dodaj wiersz" aria-label="Dodaj wiersz">➕ Dodaj wiersz</button>
+          <button id="pc-close" class="pc-icon-btn" title="Zamknij" aria-label="Zamknij">×</button>
+        </div>
+      </div>
+      <div class="pc-modal__body">
+        <table class="pc-table" aria-label="Tabela konfiguracji">
+          <thead>
+            <tr>
+              <th class="pc-col pc-col--proces">Proces</th>
+              <th class="pc-col pc-col--emails">Adresy mailowe</th>
+              <th class="pc-col pc-col--actions">Usuń</th>
+            </tr>
+          </thead>
+          <tbody id="pc-tbody"></tbody>
+        </table>
+        <div class="pc-hint">Enter tylko potwierdza wartość w polu (bez dodawania nowej linii). Użyj „➕ Dodaj wiersz”, aby dodać kolejną pozycję. „🗑 Usuń” kasuje dany wiersz.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Otwieranie i obsługa modala
+    (function(){
+      const openBtn  = document.getElementById('btn-open-process-config');
+      const overlay  = document.getElementById('pc-overlay');
+      const closeBtn = document.getElementById('pc-close');
+      const addBtn   = document.getElementById('pc-add');
+      const tbody    = document.getElementById('pc-tbody');
+
+      function openModal(){
+        overlay.classList.add('is-open');
+        overlay.setAttribute('aria-hidden','false');
+        document.body.classList.add('pc-no-scroll');
+        if (!tbody.children.length) addRow();
+        focusFirstEditable();
+      }
+      function closeModal(){
+        overlay.classList.remove('is-open');
+        overlay.setAttribute('aria-hidden','true');
+        document.body.classList.remove('pc-no-scroll');
+      }
+
+      function createCellInput(placeholder, name){
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'pc-input';
+        input.placeholder = placeholder || '';
+        input.name = name;
+
+        // Enter = tylko potwierdza (blur), bez dodawania wiersza
+        input.addEventListener('keydown', (e)=>{
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+        });
+
+        return input;
+      }
+
+      function addRow(initial = { proces: '', emails: '' }){
+        const tr = document.createElement('tr');
+
+        const td1 = document.createElement('td');
+        const inpProces = createCellInput('np. DSK, IE043, Zawiadomienia', 'Proces');
+        inpProces.value = initial.proces;
+        td1.appendChild(inpProces);
+
+        const td2 = document.createElement('td');
+        const inpEmails = createCellInput('np. anna@firma.pl; jan@firma.pl', 'Adresy mailowe');
+        inpEmails.value = initial.emails;
+        td2.appendChild(inpEmails);
+
+        const td3 = document.createElement('td');
+        td3.style.textAlign = 'right';
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'pc-icon-btn pc-icon-btn--danger pc-row-del';
+        delBtn.title = 'Usuń wiersz';
+        delBtn.setAttribute('aria-label','Usuń wiersz');
+        delBtn.textContent = '🗑 Usuń';
+        td3.appendChild(delBtn);
+
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tr.appendChild(td3);
+
+        tbody.appendChild(tr);
+        return tr;
+      }
+
+      function focusFirstEditable(){
+        tbody.querySelector('input[name="Proces"]')?.focus();
+      }
+
+      // Delegacja: usuwanie wierszy
+      tbody.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.pc-row-del');
+        if (!btn) return;
+        const row = btn.closest('tr');
+        if (!row) return;
+        row.remove();
+        // Zachowaj przynajmniej jeden pusty wiersz dla wygody
+        if (!tbody.children.length) addRow();
+      });
+
+      // Handlery
+      openBtn.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
+
+      // klik w tło zamyka
+      overlay.addEventListener('click', (e)=>{
+        if (e.target === overlay) closeModal();
+      });
+
+      // klawisz ESC zamyka
+      document.addEventListener('keydown', (e)=>{
+        if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeModal();
+      });
+
+      // plus dodaje wiersz
+      addBtn.addEventListener('click', ()=>{
+        const row = addRow();
+        row.querySelector('input[name="Proces"]')?.focus();
+      });
+    })();
+  </script>
+</body>
+</html>

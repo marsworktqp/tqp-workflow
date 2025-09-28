@@ -1,0 +1,88 @@
+{
+    "name": "tqp-automated-workflow",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "main": "main.js",
+    "description": "Desktopowy ingester e-maili (Delivery/EAD) z automatycznym zapisem PDF, aktualizacją bazy i oznaczaniem \\Seen.",
+    "author": "Twoja Firma Sp. z o.o.",
+    "license": "Proprietary",
+    "scripts": {
+      "start": "electron .",
+      "dist": "electron-builder",
+      "postinstall": "electron-builder install-app-deps"
+    },
+    "build": {
+      "appId": "com.twojafirma.tqpworkflow",
+      "productName": "TQP Workflow",
+      "files": [
+        "main.js",
+        "preload.cjs",
+        "index.html",
+        "mailListener.js",
+        "sql.js",
+        "renderer.js",
+        "styles.css",
+        "renderer/**",
+        "public/**",
+        "assets/**",
+        "css/**",
+        "styles/**",
+        "fonts/**",
+        "**/*.css",
+        "**/*.wasm",
+        "**/*.png",
+        "**/*.jpg",
+        "**/*.svg",
+        "package.json"
+      ],
+      "directories": {
+        "buildResources": "build"
+      },
+  
+      "mac": {
+        "icon": "build/icons/icon.icns",
+        "target": ["dmg", "zip"],
+        "artifactName": "${productName}-${version}.${ext}",
+        "category": "public.app-category.productivity",
+        "asar": true
+      },
+  
+      "win": {
+        "icon": "build/icons/icon.ico",
+        "target": [
+          { "target": "nsis", "arch": ["x64"] }
+        ],
+        "artifactName": "${productName} Setup ${version}.exe"
+      },
+  
+      "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "createDesktopShortcut": true,
+        "createStartMenuShortcut": true,
+        "shortcutName": "TQP Workflow",
+        "runAfterFinish": true
+      },
+  
+      "linux": {
+        "icon": "build/icons",
+        "target": ["AppImage"],
+        "artifactName": "${productName}-${version}-${arch}.${ext}"
+      }
+    },
+    "devDependencies": {
+      "electron": "^33.2.1",
+      "electron-builder": "^24.13.3",
+      "electron-rebuild": "^3.2.9"
+    },
+    "dependencies": {
+      "electron-store": "^10.1.0",
+      "imapflow": "^1.0.195",
+      "mailparser": "^3.7.4",
+      "nodemailer": "^7.0.6",
+      "pdf-parse": "^1.1.1",
+      "sql.js": "^1.13.0"
+    }
+  }
+  

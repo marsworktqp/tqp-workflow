@@ -1,0 +1,236 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@400&display=swap');
+
+/* ==== Motyw bazowy ==== */
+:root{
+  --bg-1:#1a205b;   /* ciemny granat (środek) */
+  --bg-2:#030732;   /* granat pośredni */
+  --bg-3:#000111;   /* niemal czerń krawędzie */
+
+  --panel:#141840;  /* panele/sekcje */
+  --head:#1f1f4a;   /* nagłówki tabel */
+  --line:#28304d;   /* linie/obramowania */
+  --ink:#e0efff;    /* jasny tekst */
+  --muted:#a8b4d4;  /* przygaszony tekst */
+
+  --accent:#8EE3EF;  /* turkus – aktywne elementy */
+  --accent-2:#66C6D2;
+  --accent-3:#44A9B5;
+
+  --row-even:#0f0d2b;
+  --row-odd:#141840;
+
+  --danger:#ff6e6e;
+}
+
+*{ box-sizing:border-box }
+
+html,body{
+  height:100%;
+}
+
+body{
+  margin:20px;
+  padding:0;
+  font-family:'Fira Sans Condensed',system-ui,Segoe UI,Inter,Roboto,Arial,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at top center, var(--bg-1) 0%, var(--bg-2) 50%, var(--bg-3) 90%);
+  text-shadow:0 0 1px rgba(224,239,255,0.3);
+}
+
+/* ==== Nagłówek ==== */
+.header{
+  padding:12px 14px;
+  background:#10133a;
+  border:1px solid var(--line);
+  border-radius:8px;
+}
+.header h1{ margin:0; font-size:18px; letter-spacing:.3px }
+
+/* ==== Pasek opcji ==== */
+.options-bar{
+  margin-top:12px;
+  display:flex; align-items:center; gap:8px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:10px;
+}
+.option-button{
+  background:#030732;
+  color:var(--ink);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:8px 14px;
+  cursor:pointer;
+  transition:background-color .2s, transform .1s, box-shadow .2s;
+}
+.option-button:hover{ background:#1e2755; transform:translateY(-1px) }
+.option-button:active{ transform:translateY(0) }
+.option-button.secondary{ background:#1a1d3f; color:#cdd8ff }
+.spacer{ flex:1 }
+
+/* ==== Zakładki ==== */
+.tabs{
+  display:flex; gap:8px;
+  margin:14px 0 8px 0;
+}
+.tab-button{
+  padding:10px 20px;
+  background:var(--accent);
+  color:#030732;
+  border:none;
+  border-radius:6px;
+  opacity:.7;
+  cursor:pointer;
+  transition: background-color .2s, opacity .2s, box-shadow .2s;
+}
+.tab-button:hover{ background:var(--accent-2); opacity:.85 }
+.tab-button.active{
+  background:var(--accent);
+  opacity:1;
+  font-weight:700;
+  box-shadow:0 0 12px rgba(142,227,239,.9);
+}
+
+/* ==== Sekcje filtrów ==== */
+.filter-section{
+  display:none;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:12px;
+}
+.filter-section.active{ display:block }
+
+.filters-grid{
+  display:grid; gap:10px;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+}
+.filter label{ display:block; margin-bottom:4px; color:#cfe0ff }
+.range{ display:flex; align-items:center; gap:6px }
+
+.filter-input{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:6px;
+  background:#0f0d2b;
+  color:var(--ink);
+}
+.filter-input::placeholder{ color:var(--ink); opacity:.75 }
+
+/* ==== Popupy (menu filtrów/kolumn) ==== */
+.popup{
+  position:fixed; top:80px; right:16px; /* JS może nadpisać na absolute + koordy */
+  width:320px; max-height:70vh;
+  display:none; flex-direction:column;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 10px 40px rgba(0,0,0,.45);
+  z-index:1000; overflow:hidden;
+}
+.popup-header,
+.popup-footer{
+  display:flex; align-items:center;
+  padding:10px; gap:8px;
+  border-bottom:1px solid var(--line);
+}
+.popup-footer{ border-top:1px solid var(--line); border-bottom:none; justify-content:space-between }
+.popup-header .close{
+  margin-left:auto;
+  background:#22285c; color:#fff;
+  border:1px solid var(--line);
+  border-radius:8px; padding:6px 10px; cursor:pointer;
+}
+.popup-body{ padding:10px; overflow:auto }
+.popup-body label{ display:flex; gap:8px; align-items:center; padding:6px 4px }
+
+/* delikatny wygląd checkboxów w popupie */
+.popup-body input[type="checkbox"]{
+  width:16px; height:16px; cursor:pointer;
+  accent-color: var(--accent);
+}
+
+/* ==== Tabele ==== */
+.tab-content{
+  display:none;
+  margin-top:14px;
+}
+.tab-content.active{ display:block }
+
+.table-wrap{
+  background:#0f122e;
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:auto;
+}
+
+table.grid{
+  width:100%;
+  border-collapse:separate; border-spacing:0;
+}
+
+.grid thead th{
+  position:sticky; top:0; z-index:2;
+  background:var(--head);
+  color:var(--ink);
+  border-bottom:1px solid var(--line);
+  padding:10px;
+  text-align:left;
+  user-select:none;
+  transition: background-color .15s;
+}
+.grid thead th[draggable="true"]{ cursor:move }
+.grid thead th:hover{ background-color: rgba(224,239,255,.08) }
+
+.grid tbody td{
+  border-bottom:1px solid #1e2550;
+  padding:10px;
+  white-space:nowrap;
+  text-align:left;
+}
+.grid tbody tr:nth-child(even){ background:var(--row-even) }
+.grid tbody tr:nth-child(odd){ background:var(--row-odd) }
+.grid tbody tr:hover{ background-color: rgba(224,239,255,.17) }
+
+/* ==== Ukrywanie kolumn (używane przez columns.js) ==== */
+.hidden-col{
+  display: none !important;
+}
+
+/* ==== Menu kontekstowe wiersza ==== */
+.row-context{
+  position:absolute; display:none; flex-direction:column; gap:6px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:8px;
+  z-index:1200;
+  box-shadow:0 8px 30px rgba(0,0,0,.45);
+}
+.row-context button{
+  text-align:left;
+  background:#1b1f52;
+  border:1px solid var(--line);
+  color:var(--ink);
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+  transition: background .15s;
+}
+.row-context button:hover{ background:#232a68 }
+
+/* ==== Drobne efekty stanu ==== */
+.row-updated td{
+  animation: starFlash .8s cubic-bezier(.22,1,.36,1);
+  background:#e0f7ff !important;
+  color:#1a205b !important;
+}
+@keyframes starFlash{
+  0%{ background:#fff; color:#111 }
+  35%{ background:#e0f7ff; color:#1a205b }
+  80%{ background:#8EE3EF; color:#030732 }
+  100%{ background:inherit; color:inherit }
+}
